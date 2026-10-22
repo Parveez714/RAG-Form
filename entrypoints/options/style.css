@@ -1,0 +1,16 @@
+:root { color: #1b2430; background: #f4f7f8; font: 15px/1.5 "Segoe UI", system-ui, sans-serif; }
+* { box-sizing: border-box; }
+body { margin: 0; }
+main { margin: 36px auto; max-width: 760px; padding: 24px; }
+.eyebrow { color: #167a58; font-size: 11px; font-weight: 700; letter-spacing: .08em; margin-bottom: 4px; }
+h1 { font-size: 28px; margin: 0; }
+h2 { border-top: 1px solid #d8e0e4; font-size: 18px; margin-top: 24px; padding-top: 18px; }
+label { display: block; font-weight: 600; margin: 17px 0; }
+label span, .hint, .privacy { color: #52606b; font-size: 13px; font-weight: 400; }
+input, textarea { border: 1px solid #aab6bd; border-radius: 5px; display: block; font: inherit; margin-top: 5px; padding: 10px; width: 100%; }
+textarea { resize: vertical; }
+.actions { display: flex; flex-wrap: wrap; gap: 9px; }
+button { background: #e8edef; border: 0; border-radius: 5px; cursor: pointer; font: inherit; font-weight: 600; padding: 10px 15px; }
+button.primary { background: #167a58; color: white; }
+.status { min-height: 1.5em; overflow-wrap: anywhere; }
+.privacy { border-top: 1px solid #d8e0e4; margin-top: 24px; padding-top: 14px; }

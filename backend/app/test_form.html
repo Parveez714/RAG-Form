@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Schengen & UK Border Control Entry Clearance - Tough Edge Case Test</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      max-width: 800px;
+      margin: 30px auto;
+      padding: 0 24px 60px;
+      line-height: 1.5;
+      background: #f1f5f9;
+      color: #0f172a;
+    }
+    h1 {
+      font-size: 1.8rem;
+      color: #0f172a;
+      border-bottom: 3px solid #7c3aed;
+      padding-bottom: 10px;
+      margin-bottom: 12px;
+    }
+    .edge-badge {
+      display: inline-block;
+      background: #fef08a;
+      color: #854d0e;
+      font-size: 0.75rem;
+      font-weight: 800;
+      padding: 3px 8px;
+      border-radius: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .notice {
+      background: #fdf4ff;
+      border-left: 4px solid #7c3aed;
+      padding: 14px;
+      margin-bottom: 24px;
+      border-radius: 0 8px 8px 0;
+      font-size: 0.95rem;
+    }
+    fieldset {
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 24px;
+      background: #ffffff;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+    legend {
+      font-weight: 700;
+      color: #6d28d9;
+      padding: 0 10px;
+      font-size: 1.05rem;
+    }
+    .form-row {
+      display: flex;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+    .form-group {
+      flex: 1;
+      margin-bottom: 16px;
+    }
+    .form-row .form-group {
+      margin-bottom: 0;
+    }
+    label {
+      display: block;
+      font-weight: 600;
+      font-size: 0.9rem;
+      margin-bottom: 6px;
+      color: #334155;
+    }
+    .hint {
+      font-size: 0.8rem;
+      color: #64748b;
+      font-weight: normal;
+      margin-top: 3px;
+    }
+    input[type="text"],
+    input[type="email"],
+    input[type="tel"],
+    input[type="date"],
+    input[type="number"],
+    select,
+    textarea {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      font-size: 0.95rem;
+      box-sizing: border-box;
+      background: #fff;
+    }
+    input:focus, select:focus, textarea:focus {
+      outline: none;
+      border-color: #7c3aed;
+      box-shadow: 0 0 0 3px rgba(124,58,237,0.15);
+    }
+    .radio-group, .checkbox-group {
+      display: flex;
+      gap: 18px;
+      align-items: center;
+      margin-top: 6px;
+    }
+    .radio-group label, .checkbox-group label {
+      font-weight: normal;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 0;
+    }
+  </style>
+</head>
+<body>
+  <h1>Border Agency Entry Clearance <span class="edge-badge">Edge Case Test</span></h1>
+  <div class="notice">
+    <strong>Complex Edge Cases:</strong> The questions below use ISO codes, reverse-name formats ("LAST, First"), combined address lines split into separate fields, currency conversions, multiple-choice logic, and unmentioned/negative questions!
+  </div>
+
+  <form id="visa-edge-form" onsubmit="event.preventDefault(); alert('Test completed!');">
+    <fieldset>
+      <legend>1. Applicant Identity & Reverse Formatting</legend>
+
+      <!-- EDGE CASE 1: Inverted name syntax (e.g. "Rostova, Elena" or title separation) -->
+      <div class="form-row">
+        <div class="form-group">
+          <label for="fullNameReversed">Full Legal Name in [FAMILY NAME, GIVEN NAME] format</label>
+          <input type="text" id="fullNameReversed" name="fullNameReversed" placeholder="e.g. SMITH, John" required />
+        </div>
+        <div class="form-group">
+          <label for="academicTitle">Honorific / Academic Title</label>
+          <select id="academicTitle" name="academicTitle">
+            <option value="">-- Select Title --</option>
+            <option value="Mr">Mr.</option>
+            <option value="Ms">Ms.</option>
+            <option value="Mrs">Mrs.</option>
+            <option value="Dr">Dr. / Ph.D.</option>
+            <option value="Prof">Professor</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- EDGE CASE 2: ISO Country 3-letter codes instead of country names -->
+      <div class="form-row">
+        <div class="form-group">
+          <label for="isoNationality">Country of Passport Issuance (ISO-3 Code)</label>
+          <select id="isoNationality" name="isoNationality" required>
+            <option value="">-- Select ISO Code --</option>
+            <option value="CAN">CAN (Canada)</option>
+            <option value="DEU">DEU (Germany)</option>
+            <option value="GBR">GBR (United Kingdom)</option>
+            <option value="IND">IND (India)</option>
+            <option value="USA">USA (United States)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="cleanPassport">Passport Number (Alphanumeric only, without hyphens)</label>
+          <input type="text" id="cleanPassport" name="cleanPassport" placeholder="e.g. A99283741" />
+        </div>
+      </div>
+
+      <!-- EDGE CASE 3: Age calculation from Birth Date -->
+      <div class="form-row">
+        <div class="form-group">
+          <label for="birthCity">Place of Birth (City & State only)</label>
+          <input type="text" id="birthCity" name="birthCity" placeholder="City, State" />
+        </div>
+        <div class="form-group">
+          <label for="calculatedAge">Current Age in Years</label>
+          <input type="number" id="calculatedAge" name="calculatedAge" placeholder="Calculated from DOB" />
+        </div>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>2. Dissected Residential Address</legend>
+      <!-- EDGE CASE 4: The document has 1 paragraph address: "144 Elmwood Ave, Apartment 4B, Cambridge, Massachusetts, 02138, USA".
+           Can the LLM split it cleanly into Apartment #, Street Address, City, State, and Postal Code? -->
+      <div class="form-row">
+        <div class="form-group" style="flex: 2;">
+          <label for="streetLine">Street Name & Building Number</label>
+          <input type="text" id="streetLine" name="streetLine" />
+        </div>
+        <div class="form-group" style="flex: 1;">
+          <label for="aptUnit">Apartment / Suite / Unit Number</label>
+          <input type="text" id="aptUnit" name="aptUnit" />
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="resCity">Municipality / City</label>
+          <input type="text" id="resCity" name="resCity" />
+        </div>
+        <div class="form-group">
+          <label for="resState">State / Province</label>
+          <input type="text" id="resState" name="resState" />
+        </div>
+        <div class="form-group">
+          <label for="resZip">ZIP / Postal Code</label>
+          <input type="text" id="resZip" name="resZip" />
+        </div>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>3. Economic & Income Bracket Inference</legend>
+      <!-- EDGE CASE 5: Compensation Range mapping ($165,000 base salary) -->
+      <div class="form-group">
+        <label for="incomeBracket">Gross Annual Income Bracket</label>
+        <select id="incomeBracket" name="incomeBracket">
+          <option value="">-- Select Bracket --</option>
+          <option value="under_50k">Under $50,000 USD</option>
+          <option value="50k_100k">$50,000 - $100,000 USD</option>
+          <option value="100k_150k">$100,000 - $150,000 USD</option>
+          <option value="150k_200k">$150,000 - $200,000 USD</option>
+          <option value="over_200k">Over $200,000 USD</option>
+        </select>
+      </div>
+
+      <!-- EDGE CASE 6: Years of service extraction -->
+      <div class="form-row">
+        <div class="form-group">
+          <label for="currentEmployer">Current Organization / Institute</label>
+          <input type="text" id="currentEmployer" name="currentEmployer" />
+        </div>
+        <div class="form-group">
+          <label for="tenureYears">Length of Continuous Service at Current Employer (in years)</label>
+          <input type="number" id="tenureYears" name="tenureYears" />
+        </div>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>4. Itinerary & Airport Code</legend>
+      <!-- EDGE CASE 7: Mapping "London Heathrow Airport" to IATA 3-letter code LHR -->
+      <div class="form-row">
+        <div class="form-group">
+          <label for="airportCode">Port of Disembarkation (IATA Airport Code)</label>
+          <select id="airportCode" name="airportCode">
+            <option value="">-- Select Airport --</option>
+            <option value="JFK">JFK (New York)</option>
+            <option value="LHR">LHR (London Heathrow)</option>
+            <option value="CDG">CDG (Paris Charles de Gaulle)</option>
+            <option value="FRA">FRA (Frankfurt)</option>
+            <option value="HND">HND (Tokyo Haneda)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="stayWeeks">Estimated Length of Visit (in weeks)</label>
+          <input type="number" id="stayWeeks" name="stayWeeks" placeholder="14 days = 2 weeks" />
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="collaboratingHost">UK Host / Sponsoring Academic Institution</label>
+        <input type="text" id="collaboratingHost" name="collaboratingHost" placeholder="e.g. Imperial College" />
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>5. Negative / Unknown Questions (Zero Hallucination Test)</legend>
+      <!-- EDGE CASE 8: The dossier has NO information about past criminal history or military service.
+           Will Gemini leave it blank / answer correctly instead of hallucinating? -->
+      <div class="form-group">
+        <label for="militaryService">Have you ever served in the armed forces / military?</label>
+        <div class="radio-group">
+          <label><input type="radio" name="military" value="yes" /> Yes</label>
+          <label><input type="radio" name="military" value="no" /> No</label>
+        </div>
+        <div class="hint">Note: Not mentioned in dossier; LLM should flag as low confidence or leave blank.</div>
+      </div>
+
+      <div class="form-group">
+        <label for="spouseName">Spouse / Partner Full Name (if married)</label>
+        <input type="text" id="spouseName" name="spouseName" placeholder="Leave empty if not mentioned in dossier" />
+      </div>
+    </fieldset>
+  </form>
+</body>
+</html>
