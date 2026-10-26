@@ -93,6 +93,110 @@ if static_dir.exists():
     app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
 
 
+@app.post("/api/v1/mock-enterprise-rag", response_model=FillResponse)
+def mock_enterprise_rag(
+    request: FillRequest,
+    authorization: str | None = Header(default=None),
+) -> FillResponse:
+    """
+    Sample Enterprise RAG API Endpoint.
+    Simulates a production retrieval service that checks user identity and returns
+    grounded field answers from enterprise document stores.
+    """
+    logger.info("Received Enterprise RAG request for user: %s (Auth: %s)", request.user_email, bool(authorization))
+
+    # In production, your enterprise RAG looks up documents for this specific user
+    user_email = (request.user_email or "parveezbackup@gmail.com").lower()
+    
+    # Load knowledge store as simulated vector/document index
+    all_documents = load_documents()
+    user_docs = filter_documents_by_user(all_documents, user_email)
+    primary_doc = user_docs[0] if user_docs else all_documents[0]
+    
+    answers: dict[str, str] = primary_doc.get("answers", {})  # type: ignore
+    doc_id = str(primary_doc.get("id", "enterprise-doc-001"))
+    doc_title = str(primary_doc.get("title", "Enterprise Identity Dossier"))
+
+    suggestions: list[FillSuggestion] = []
+
+    for field in request.fields:
+        label_lower = field.label.strip().lower()
+        matched_val: str | None = None
+        
+        # 1. Fuzzy match against document answer key
+        for key, val in answers.items():
+            if key.lower() in label_lower or label_lower in key.lower():
+                matched_val = val
+                break
+        
+        # 2. Common synonym mapping
+        if not matched_val:
+            if "name" in label_lower and "company" not in label_lower and "employer" not in label_lower:
+                matched_val = answers.get("Full Name")
+            elif "mail" in label_lower:
+                matched_val = answers.get("Email", user_email)
+            elif "phone" in label_lower or "mobile" in label_lower or "contact" in label_lower:
+                matched_val = answers.get("Phone")
+            elif "passport" in label_lower:
+                matched_val = answers.get("Passport Number")
+            elif "birth" in label_lower or "dob" in label_lower:
+                matched_val = answers.get("Date of Birth")
+            elif "gender" in label_lower or "sex" in label_lower:
+                matched_val = answers.get("Gender")
+            elif "nation" in label_lower or "citizenship" in label_lower:
+                matched_val = answers.get("Nationality")
+            elif "address" in label_lower or "residen" in label_lower:
+                matched_val = answers.get("Address")
+            elif "employer" in label_lower or "company" in label_lower or "organization" in label_lower:
+                matched_val = answers.get("Current Employer")
+            elif "title" in label_lower or "designation" in label_lower or "role" in label_lower:
+                matched_val = answers.get("Job Title")
+
+        # 3. Handle selection/radio controls
+        if matched_val and field.options:
+            matched_option = next(
+                (
+                    opt.value if isinstance(opt, SelectOption) else str(opt)
+                    for opt in field.options
+                    if (
+                        (opt.label if isinstance(opt, SelectOption) else str(opt)).strip().lower() == matched_val.strip().lower()
+                        or (opt.value if isinstance(opt, SelectOption) else str(opt)).strip().lower() == matched_val.strip().lower()
+                    )
+                ),
+                matched_val
+            )
+            matched_val = matched_option
+
+        if matched_val:
+            suggestions.append(
+                FillSuggestion(
+                    field_id=field.id,
+                    proposed_value=matched_val,
+                    confidence=0.98,
+                    source=SourceCitation(
+                        document_id=doc_id,
+                        title=doc_title,
+                        excerpt=f"Enterprise verified record for {user_email}: {matched_val}",
+                    ),
+                    needs_review=False,
+                    reason=f"Retrieved from verified enterprise profile ({doc_id})",
+                )
+            )
+        else:
+            suggestions.append(
+                FillSuggestion(
+                    field_id=field.id,
+                    proposed_value="",
+                    confidence=0.0,
+                    source=None,
+                    needs_review=True,
+                    reason="No matching record in enterprise document repository.",
+                )
+            )
+
+    return FillResponse(suggestions=suggestions)
+
+
 @app.get("/health")
 def health() -> dict[str, str]:
     has_external_rag = bool(EXTERNAL_RAG_API_URL)
