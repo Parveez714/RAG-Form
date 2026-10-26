@@ -73,6 +73,14 @@ function Options(): React.JSX.Element {
       <h1>Extension settings</h1>
       <p>Only approved HTTPS origins are scanned. Your API endpoint and site list are stored locally in this browser.</p>
       <form onSubmit={(event) => void save(event)}>
+        <label>Your Profile Email
+          <input
+            type="email"
+            placeholder="e.g. parveezbackup@gmail.com"
+            value={settings.userEmail ?? ""}
+            onChange={(event) => update("userEmail", event.target.value)}
+          />
+        </label>
         <label>Backend API URL
           <input type="url" required value={settings.apiUrl} onChange={(event) => update("apiUrl", event.target.value)} />
         </label>

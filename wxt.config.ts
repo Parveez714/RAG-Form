@@ -11,7 +11,8 @@ export default defineConfig({
       "scripting",
       "storage",
       "sidePanel",
-      "identity"
+      "identity",
+      "notifications"
     ],
     optional_host_permissions: [
       "http://localhost/*",

@@ -238,3 +238,43 @@ export function fillFormField(fieldId: string, value: string): boolean {
 
   return false;
 }
+
+export function submitFormOnPage(): boolean {
+  // 1. Look for MS Forms explicit submit button
+  const msSubmit = document.querySelector<HTMLButtonElement | HTMLElement>(
+    '[data-automation-id="submitButton"], button[data-automation-id*="submit"], button.office-form-bottom-button'
+  );
+  if (msSubmit) {
+    msSubmit.click();
+    return true;
+  }
+
+  // 2. Look for standard submit buttons / input[type="submit"]
+  const submitBtn = document.querySelector<HTMLButtonElement | HTMLInputElement>(
+    'button[type="submit"], input[type="submit"]'
+  );
+  if (submitBtn) {
+    submitBtn.click();
+    return true;
+  }
+
+  // 3. Fallback: Search for buttons containing text "submit", "send", "apply"
+  const buttons = Array.from(document.querySelectorAll<HTMLButtonElement>("button"));
+  const candidate = buttons.find((btn) => {
+    const text = btn.innerText?.trim().toLowerCase() ?? "";
+    return text === "submit" || text === "send" || text.includes("submit");
+  });
+  if (candidate) {
+    candidate.click();
+    return true;
+  }
+
+  // 4. Try native form submit
+  const form = document.querySelector("form");
+  if (form) {
+    form.requestSubmit ? form.requestSubmit() : form.submit();
+    return true;
+  }
+
+  return false;
+}

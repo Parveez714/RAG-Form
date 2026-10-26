@@ -60,11 +60,13 @@ export type WorkerRequest =
   | { type: "SCAN_ACTIVE_TAB" }
   | { type: "FILL_FIELD"; fieldId: string; value: string }
   | { type: "FILL_ALL_FIELDS"; items: Array<{ fieldId: string; value: string }> }
+  | { type: "SUBMIT_ACTIVE_FORM" }
+  | { type: "NAVIGATE_AND_AUTOFILL"; url: string }
   | { type: "GET_SETTINGS" }
   | { type: "SAVE_SETTINGS"; settings: ExtensionSettings }
   | { type: "SIGN_IN" }
   | { type: "SIGN_OUT" };
 
 export type WorkerResponse =
-  | { ok: true; fields?: FormField[]; suggestions?: FillSuggestion[]; settings?: ExtensionSettings; message?: string; filledCount?: number }
+  | { ok: true; fields?: FormField[]; suggestions?: FillSuggestion[]; settings?: ExtensionSettings; message?: string; filledCount?: number; submitted?: boolean }
   | { ok: false; error: string };

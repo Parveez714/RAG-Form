@@ -1,7 +1,7 @@
 import { defineBackground } from "wxt/utils/define-background";
 import { type ExtensionSettings, type FillSuggestion, type FormField, type WorkerRequest, type WorkerResponse } from "../src/shared/types";
 import { clearToken, readSettings, readToken, writeSettings, writeToken } from "../src/shared/storage";
-import { fillFormField, scanFormFields } from "../src/shared/page-bridge";
+import { fillFormField, scanFormFields, submitFormOnPage } from "../src/shared/page-bridge";
 
 export default defineBackground(() => {
   // 1. Click on action opens side panel
@@ -9,14 +9,31 @@ export default defineBackground(() => {
     if (tab.id !== undefined) void chrome.sidePanel.open({ tabId: tab.id });
   });
 
-  // 2. Autonomous Background Form Detection & Auto-fill when visiting approved sites
+  // 2. Notification click opens side panel and activates target tab
+  chrome.notifications?.onClicked?.addListener((notificationId) => {
+    if (notificationId.startsWith("autofill-tab-")) {
+      const tabId = parseInt(notificationId.replace("autofill-tab-", ""), 10);
+      if (!isNaN(tabId)) {
+        chrome.tabs.update(tabId, { active: true }, (tab) => {
+          if (tab && tab.windowId) {
+            chrome.windows.update(tab.windowId, { focused: true });
+          }
+          if ("sidePanel" in chrome && "open" in chrome.sidePanel) {
+            void chrome.sidePanel.open({ tabId }).catch(() => {});
+          }
+        });
+      }
+    }
+  });
+
+  // 3. Autonomous Background Form Detection & Auto-fill when visiting approved sites
   chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
     if (changeInfo.status === "complete" && tab.url) {
       void handleAutoFillForTab(tabId, tab.url);
     }
   });
 
-  // 3. Runtime messaging router
+  // 4. Runtime messaging router
   chrome.runtime.onMessage.addListener((request: WorkerRequest, _sender, sendResponse) => {
     void handleRequest(request)
       .then(sendResponse)
@@ -33,10 +50,8 @@ async function handleAutoFillForTab(tabId: number, tabUrl: string): Promise<void
     const settings = await readSettings();
     if (!settings.allowedOrigins.includes(parsed.origin)) return;
 
-    // Check if sidePanel can be opened automatically on this approved tab
-    if ("sidePanel" in chrome && "open" in chrome.sidePanel) {
-      void chrome.sidePanel.open({ tabId }).catch(() => {});
-    }
+    // Wait 1.5 seconds for dynamic form controls (like MS Forms / React) to finish rendering
+    await new Promise((r) => setTimeout(r, 1500));
 
     // Inspect form controls
     const result = await chrome.scripting.executeScript({
@@ -77,12 +92,14 @@ async function handleAutoFillForTab(tabId: number, tabUrl: string): Promise<void
       .filter((s) => s.proposed_value && s.proposed_value.trim().length > 0 && s.confidence >= 0.5)
       .map((s) => ({ fieldId: s.field_id, value: s.proposed_value }));
 
+    let filledCount = 0;
     if (fillable.length > 0) {
-      await chrome.scripting.executeScript({
+      const fillRes = await chrome.scripting.executeScript({
         target: { tabId },
         func: executeFillOnPage,
         args: [fillable]
       });
+      filledCount = (fillRes[0]?.result as number) || fillable.length;
     }
 
     // Store latest inspection result in session storage for the SidePanel to display
@@ -103,6 +120,19 @@ async function handleAutoFillForTab(tabId: number, tabUrl: string): Promise<void
       fields,
       suggestions
     }).catch(() => {});
+
+    // Send Web Notification to user
+    try {
+      chrome.notifications.create(`autofill-tab-${tabId}`, {
+        type: "basic",
+        iconUrl: chrome.runtime.getURL("wxt.svg"),
+        title: "⚡ Form Auto-Filled!",
+        message: `${filledCount} of ${fields.length} fields filled. Click here to review in Side Panel before submission.`,
+        priority: 2
+      });
+    } catch {
+      // Ignore notification failures if notifications unsupported
+    }
   } catch {
     // Ignore errors for non-matching background tabs
   }
@@ -127,7 +157,39 @@ async function handleRequest(request: WorkerRequest): Promise<WorkerResponse> {
       return fillActiveField(request.fieldId, request.value);
     case "FILL_ALL_FIELDS":
       return fillAllActiveFields(request.items);
+    case "SUBMIT_ACTIVE_FORM":
+      return submitActiveForm();
+    case "NAVIGATE_AND_AUTOFILL":
+      return navigateAndAutofill(request.url);
   }
+}
+
+async function navigateAndAutofill(url: string): Promise<WorkerResponse> {
+  const parsed = new URL(url);
+  const settings = await readSettings();
+
+  // If origin not yet approved, automatically add it
+  if (!settings.allowedOrigins.includes(parsed.origin)) {
+    settings.allowedOrigins.push(parsed.origin);
+    await writeSettings(settings);
+  }
+
+  // Open the tab
+  const tab = await chrome.tabs.create({ url, active: true });
+  return { ok: true, message: `Opened ${parsed.hostname}. Auto-filling will execute upon page load.` };
+}
+
+async function submitActiveForm(): Promise<WorkerResponse> {
+  const tab = await getActiveTab();
+  await ensureApprovedTab(tab);
+  const results = await chrome.scripting.executeScript({
+    target: { tabId: tab.id! },
+    func: submitFormOnPage
+  });
+  if (results[0]?.result !== true) {
+    throw new Error("Could not find a submit button on this page to trigger.");
+  }
+  return { ok: true, submitted: true, message: "Form submitted successfully." };
 }
 
 async function saveSettings(settings: ExtensionSettings): Promise<void> {

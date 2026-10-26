@@ -12,8 +12,10 @@ interface ReviewItem {
 
 function SidePanel(): React.JSX.Element {
   const [items, setItems] = useState<ReviewItem[]>([]);
+  const [targetUrl, setTargetUrl] = useState("");
   const [status, setStatus] = useState("Monitoring active page for approved forms…");
   const [busy, setBusy] = useState(false);
+  const [submitSuccess, setSubmitSuccess] = useState(false);
 
   async function send(request: WorkerRequest): Promise<WorkerResponse> {
     return chrome.runtime.sendMessage(request) as Promise<WorkerResponse>;
@@ -32,6 +34,7 @@ function SidePanel(): React.JSX.Element {
       return { field, suggestion, value: suggestion.proposed_value };
     });
     setItems(reviewItems);
+    setSubmitSuccess(false);
     const filledCount = reviewItems.filter((i) => i.value && i.value.trim()).length;
     if (autoFilled) {
       setStatus(`Autonomous fill complete! ${filledCount} / ${fields.length} fields filled on the page. Review below before submitting.`);
@@ -58,6 +61,25 @@ function SidePanel(): React.JSX.Element {
     chrome.runtime.onMessage.addListener(listener);
     return () => chrome.runtime.onMessage.removeListener(listener);
   }, []);
+
+  async function launchAndAutofill(): Promise<void> {
+    const trimmed = targetUrl.trim();
+    if (!trimmed) {
+      setStatus("Please enter a valid form URL first.");
+      return;
+    }
+    setBusy(true);
+    setStatus("Navigating to form… It will automatically fill and notify you once ready.");
+    try {
+      const resp = await send({ type: "NAVIGATE_AND_AUTOFILL", url: trimmed });
+      if (!resp.ok) throw new Error(resp.error);
+      setStatus(resp.message ?? "Form tab opened. Auto-filling in progress…");
+    } catch (err) {
+      setStatus(err instanceof Error ? err.message : "Failed to launch form.");
+    } finally {
+      setBusy(false);
+    }
+  }
 
   async function manualScan(): Promise<void> {
     setBusy(true);
@@ -102,6 +124,26 @@ function SidePanel(): React.JSX.Element {
     }
   }
 
+  async function approveAndSubmit(): Promise<void> {
+    const confirmed = window.confirm(
+      "Are you sure you want to approve and submit this form? This will click the page's submit button."
+    );
+    if (!confirmed) return;
+
+    setBusy(true);
+    setStatus("Submitting form…");
+    try {
+      const resp = await send({ type: "SUBMIT_ACTIVE_FORM" });
+      if (!resp.ok) throw new Error(resp.error);
+      setSubmitSuccess(true);
+      setStatus("Form submitted successfully!");
+    } catch (err) {
+      setStatus(err instanceof Error ? err.message : "Could not submit form.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   function updateValue(fieldId: string, value: string): void {
     setItems((current) => current.map((item) =>
       item.field.id === fieldId ? { ...item, value } : item
@@ -118,15 +160,38 @@ function SidePanel(): React.JSX.Element {
       <header>
         <p className="eyebrow">RAG FORM ASSISTANT</p>
         <h1>Autonomous Auto-Fill</h1>
-        <p className="intro">
-          Automatically fills approved forms as soon as you visit them. Review all matched values & citations below before submitting.
-        </p>
+
+        {/* 1-Click Launch & Auto-fill URL Bar */}
+        <div style={{ margin: "12px 0", display: "flex", flexDirection: "column", gap: "6px" }}>
+          <label style={{ fontSize: "12px", fontWeight: "600", color: "#374151" }}>
+            Target Form Address
+          </label>
+          <div style={{ display: "flex", gap: "6px" }}>
+            <input
+              type="url"
+              value={targetUrl}
+              onChange={(e) => setTargetUrl(e.target.value)}
+              placeholder="https://forms.cloud.microsoft/..."
+              style={{ flex: 1, padding: "8px", borderRadius: "6px", border: "1px solid #d1d5db", fontSize: "12px" }}
+            />
+            <button
+              className="primary"
+              onClick={() => void launchAndAutofill()}
+              disabled={busy || !targetUrl.trim()}
+              style={{ whiteSpace: "nowrap", padding: "8px 12px", fontSize: "12px" }}
+            >
+              🚀 Go & Fill
+            </button>
+          </div>
+        </div>
+
         <button
-          className="primary scan-button"
+          className="secondary scan-button"
           onClick={() => void manualScan()}
           disabled={busy}
+          style={{ width: "100%", marginTop: "4px" }}
         >
-          {busy ? "Processing…" : "Re-scan & Auto-fill Page"}
+          {busy ? "Processing…" : "🔄 Re-scan Active Page"}
         </button>
       </header>
 
@@ -145,6 +210,7 @@ function SidePanel(): React.JSX.Element {
         </section>
       )}
 
+      {/* Review list */}
       <section aria-label="Field Inspection and Citations">
         {items.map((item) => {
           const lowConfidence = item.suggestion.confidence < MIN_FILL_CONFIDENCE;
@@ -197,6 +263,30 @@ function SidePanel(): React.JSX.Element {
           );
         })}
       </section>
+
+      {/* Approve and Submit Form Action Button */}
+      {items.length > 0 && (
+        <section style={{ margin: "20px 0" }}>
+          <button
+            className="primary"
+            onClick={() => void approveAndSubmit()}
+            disabled={busy || submitSuccess}
+            style={{
+              width: "100%",
+              padding: "12px",
+              fontSize: "14px",
+              fontWeight: "600",
+              backgroundColor: submitSuccess ? "#16a34a" : "#2563eb",
+              color: "#ffffff",
+              border: "none",
+              borderRadius: "8px",
+              cursor: "pointer"
+            }}
+          >
+            {submitSuccess ? "✓ Form Submitted" : "✅ Approve & Submit Form"}
+          </button>
+        </section>
+      )}
 
       <footer>
         <a href="../options.html" target="_blank">Open extension options</a>

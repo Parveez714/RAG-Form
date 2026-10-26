@@ -13,6 +13,7 @@ from dotenv import load_dotenv
 from fastapi import FastAPI, Header, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 # Load .env file from project root or parent directories
@@ -85,6 +86,11 @@ app.add_middleware(
     allow_methods=["GET", "POST"],
     allow_headers=["Authorization", "Content-Type"],
 )
+
+# Serve extension .crx package and updates.xml for enterprise deployment
+static_dir = Path(__file__).parent / "static"
+if static_dir.exists():
+    app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
 
 
 @app.get("/health")
@@ -163,7 +169,7 @@ def filter_documents_by_user(documents: list[dict[str, object]], user_email: str
         if str(doc.get("email", "")).strip().lower() == normalized_email
     ]
     # If the user has specific documents, return only those; otherwise return all
-    return matched if matched else documents
+    return matched if matched else [documents[0]]
 
 
 def call_external_rag_api(request: FillRequest, authorization: str | None) -> FillResponse:
