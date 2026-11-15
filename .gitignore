@@ -6,4 +6,7 @@ __pycache__/
 .pytest_cache/
 .venv/
 .env
+.env.*
+!.env.example
 *.py[cod]
+.browser_harness/

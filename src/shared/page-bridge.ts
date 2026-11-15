@@ -38,7 +38,7 @@ export function scanFormFields(): FormField[] {
       .map((l) => l.trim())
       .filter((l) => l.length > 0 && !/^(\d+[\.\)])$/.test(l));
 
-    if (lines.length > 0) {
+    if (lines.length > 0 && lines[0]) {
       const candidate = lines[0].replace(/^(\d+[\.\)]\s*)/, "");
       if (!isGeneric(candidate)) return candidate;
     }

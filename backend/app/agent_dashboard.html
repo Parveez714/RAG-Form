@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Autonomous AI Browser Form Filler</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0b0f19;
+      --card-bg: #111827;
+      --border: #1f2937;
+      --text: #f9fafb;
+      --text-muted: #9ca3af;
+      --primary: #3b82f6;
+      --primary-hover: #2563eb;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --accent: #8b5cf6;
+    }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 40px 20px;
+    }
+    .container {
+      width: 100%;
+      max-width: 760px;
+    }
+    .header {
+      text-align: center;
+      margin-bottom: 32px;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 12px;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      background: rgba(59, 130, 246, 0.15);
+      color: #60a5fa;
+      border: 1px solid rgba(59, 130, 246, 0.3);
+      margin-bottom: 12px;
+    }
+    .pulse-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background-color: #3b82f6;
+      box-shadow: 0 0 8px #3b82f6;
+    }
+    h1 {
+      font-size: 2rem;
+      font-weight: 800;
+      background: linear-gradient(135deg, #ffffff 0%, #94a3b8 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 8px;
+    }
+    p.subtitle {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+    }
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 28px;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+      margin-bottom: 24px;
+    }
+    .form-group {
+      margin-bottom: 20px;
+    }
+    label {
+      display: block;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #e5e7eb;
+      margin-bottom: 8px;
+    }
+    label span.hint {
+      font-weight: 400;
+      color: var(--text-muted);
+      margin-left: 6px;
+      font-size: 0.8rem;
+    }
+    input[type="text"], select, textarea {
+      width: 100%;
+      background: #0f172a;
+      border: 1px solid #334155;
+      border-radius: 8px;
+      color: #f8fafc;
+      padding: 12px 14px;
+      font-size: 0.9rem;
+      transition: border-color 0.15s ease;
+      outline: none;
+    }
+    input[type="text"]:focus, select:focus, textarea:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+    }
+    .radio-cards {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    @media (max-width: 600px) {
+      .radio-cards { grid-template-columns: 1fr; }
+    }
+    .radio-card {
+      border: 1px solid #334155;
+      border-radius: 8px;
+      padding: 14px;
+      cursor: pointer;
+      background: #0f172a;
+      transition: all 0.15s ease;
+      position: relative;
+    }
+    .radio-card:hover {
+      border-color: #475569;
+    }
+    .radio-card.selected {
+      border-color: var(--primary);
+      background: rgba(59, 130, 246, 0.08);
+    }
+    .radio-card input {
+      position: absolute;
+      opacity: 0;
+    }
+    .radio-card-title {
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: #f1f5f9;
+      margin-bottom: 4px;
+    }
+    .radio-card-desc {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      line-height: 1.35;
+    }
+    .quick-links {
+      display: flex;
+      gap: 8px;
+      margin-top: 8px;
+      flex-wrap: wrap;
+    }
+    .quick-pill {
+      font-size: 0.75rem;
+      background: #1e293b;
+      color: #94a3b8;
+      border: 1px solid #334155;
+      padding: 4px 10px;
+      border-radius: 6px;
+      cursor: pointer;
+      text-decoration: none;
+      transition: all 0.15s;
+    }
+    .quick-pill:hover {
+      background: #334155;
+      color: #f8fafc;
+    }
+    .btn-launch {
+      width: 100%;
+      background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+      color: #ffffff;
+      border: none;
+      border-radius: 8px;
+      padding: 14px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      transition: transform 0.1s, opacity 0.15s;
+      margin-top: 10px;
+    }
+    .btn-launch:hover:not(:disabled) {
+      opacity: 0.95;
+      transform: translateY(-1px);
+    }
+    .btn-launch:disabled {
+      background: #334155;
+      color: #64748b;
+      cursor: not-allowed;
+    }
+    .log-panel {
+      background: #030712;
+      border: 1px solid #1f2937;
+      border-radius: 10px;
+      padding: 16px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.8rem;
+      color: #10b981;
+      max-height: 250px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      display: none;
+    }
+    .alert {
+      padding: 12px 16px;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      margin-bottom: 20px;
+      display: none;
+    }
+    .alert-error {
+      background: rgba(239, 68, 68, 0.15);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      color: #f87171;
+    }
+    .alert-success {
+      background: rgba(16, 185, 129, 0.15);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      color: #34d399;
+    }
+    .spinner {
+      width: 18px;
+      height: 18px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-radius: 50%;
+      border-top-color: #fff;
+      animation: spin 0.8s linear infinite;
+      display: none;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="badge">
+        <div class="pulse-dot"></div>
+        Autonomous Computer Use
+      </div>
+      <h1>AI Browser Form Filler</h1>
+      <p class="subtitle">Controls Chrome visually to complete any application without browser extensions</p>
+    </div>
+
+    <div id="alertBox" class="alert"></div>
+
+    <div class="card">
+      <form id="agentForm">
+        <!-- Target URL -->
+        <div class="form-group">
+          <label for="url">
+            Target Form or Web Page Link
+            <span class="hint">(Any public or internal URL)</span>
+          </label>
+          <input 
+            type="text" 
+            id="url" 
+            name="url" 
+            placeholder="https://... or http://127.0.0.1:8000/test-form" 
+            value="http://127.0.0.1:8000/test-form" 
+            required
+          />
+          <div class="quick-links">
+            <span style="font-size: 0.75rem; color: #64748b; align-self: center;">Quick test:</span>
+            <button type="button" class="quick-pill" onclick="setUrl('http://127.0.0.1:8000/test-form')">Sample Embassy Form</button>
+          </div>
+        </div>
+
+        <!-- Profile Selector -->
+        <div class="form-group">
+          <label for="profileId">
+            Applicant Dossier
+            <span class="hint">(Loaded from verified knowledge.json)</span>
+          </label>
+          <select id="profileId" name="profileId">
+            <option value="">Loading profiles...</option>
+          </select>
+        </div>
+
+        <!-- Browser Mode -->
+        <div class="form-group">
+          <label>Browser Session & Credentials Mode</label>
+          <div class="radio-cards">
+            <div class="radio-card selected" onclick="selectMode('chromium', this)">
+              <input type="radio" name="mode" value="chromium" checked>
+              <div class="radio-card-title">Clean Browser</div>
+              <div class="radio-card-desc">Opens an isolated visual Chromium window on your screen.</div>
+            </div>
+
+            <div class="radio-card" onclick="selectMode('chrome_profile', this)">
+              <input type="radio" name="mode" value="chrome_profile">
+              <div class="radio-card-title">My Logged-in Chrome</div>
+              <div class="radio-card-desc">Copies your active Chrome session (Google logins, cookies & SSO).</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Custom Instructions -->
+        <div class="form-group">
+          <label for="instructions">
+            Custom Instructions
+            <span class="hint">(Optional)</span>
+          </label>
+          <input 
+            type="text" 
+            id="instructions" 
+            name="instructions" 
+            placeholder="e.g. Leave passport expiration blank or pick UK category"
+          />
+        </div>
+
+        <!-- Submit Button -->
+        <button type="submit" id="submitBtn" class="btn-launch">
+          <div id="btnSpinner" class="spinner"></div>
+          <span id="btnText">Launch AI Form Filler</span>
+        </button>
+      </form>
+    </div>
+
+    <!-- Live execution log -->
+    <div id="logPanel" class="log-panel"></div>
+  </div>
+
+  <script>
+    let currentMode = 'chromium';
+
+    function setUrl(url) {
+      document.getElementById('url').value = url;
+    }
+
+    function selectMode(mode, element) {
+      currentMode = mode;
+      document.querySelectorAll('.radio-card').forEach(el => el.classList.remove('selected'));
+      element.classList.add('selected');
+      element.querySelector('input').checked = true;
+    }
+
+    // Load available profiles from backend
+    async function loadProfiles() {
+      try {
+        const res = await fetch('/api/agent/profiles');
+        const profiles = await res.json();
+        const select = document.getElementById('profileId');
+        select.innerHTML = '';
+        profiles.forEach(p => {
+          const opt = document.createElement('option');
+          opt.value = p.id;
+          opt.textContent = `${p.sample_name || p.title} (${p.id})`;
+          select.appendChild(opt);
+        });
+      } catch (err) {
+        console.error('Failed to load profiles:', err);
+      }
+    }
+    loadProfiles();
+
+    // Handle Form Submit
+    const form = document.getElementById('agentForm');
+    const submitBtn = document.getElementById('submitBtn');
+    const btnSpinner = document.getElementById('btnSpinner');
+    const btnText = document.getElementById('btnText');
+    const alertBox = document.getElementById('alertBox');
+    const logPanel = document.getElementById('logPanel');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const url = document.getElementById('url').value.trim();
+      const profileId = document.getElementById('profileId').value;
+      const instructions = document.getElementById('instructions').value.trim();
+
+      alertBox.style.display = 'none';
+      logPanel.style.display = 'block';
+      logPanel.textContent = `[SYSTEM] Preparing autonomous agent...\n[CONFIG] Target: ${url}\n[CONFIG] Mode: ${currentMode}\n[CONFIG] Profile: ${profileId}\n`;
+
+      submitBtn.disabled = true;
+      btnSpinner.style.display = 'block';
+      btnText.textContent = 'Agent is running on your screen...';
+
+      try {
+        const response = await fetch('/api/agent/fill', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            url: url,
+            profile_id: profileId,
+            browser_mode: currentMode,
+            custom_instructions: instructions
+          })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.detail || 'Agent execution failed');
+        }
+
+        alertBox.className = 'alert alert-success';
+        alertBox.textContent = `Form processing complete! Check the opened Chrome window.`;
+        alertBox.style.display = 'block';
+
+        let formattedSummary = `\n=======================================================\n[AGENT AUDIT REPORT & SUMMARY]\n=======================================================\n`;
+        if (data.summary) {
+          formattedSummary += data.summary + '\n';
+        }
+        formattedSummary += `\n[ACTION REQUIRED] Please review any unfilled/amber fields in the open browser before clicking Submit.`;
+
+        logPanel.textContent += formattedSummary;
+      } catch (err) {
+        alertBox.className = 'alert alert-error';
+        alertBox.textContent = err.message;
+        alertBox.style.display = 'block';
+        logPanel.textContent += `\n[ERROR] ${err.message}`;
+      } finally {
+        submitBtn.disabled = false;
+        btnSpinner.style.display = 'none';
+        btnText.textContent = 'Launch AI Form Filler';
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,11 +1,15 @@
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
+import mimetypes
 import os
 import re
 from pathlib import Path
 from typing import Any, Literal
+
+mimetypes.add_type("application/x-chrome-extension", ".crx")
 
 import httpx
 import requests
@@ -36,6 +40,16 @@ logger = logging.getLogger("uvicorn.error")
 class SelectOption(BaseModel):
     value: str
     label: str
+
+
+class AgentFillRequest(BaseModel):
+    url: str
+    profile_id: str | None = None
+    email: str | None = None
+    browser_mode: str = "chromium"
+    chrome_profile: str | None = None
+    cdp_url: str | None = None
+    custom_instructions: str | None = None
 
 
 class FormField(BaseModel):
@@ -226,6 +240,41 @@ def get_test_form() -> str:
     if not test_form_file.exists():
         raise HTTPException(status_code=404, detail="Test form not found.")
     return test_form_file.read_text(encoding="utf-8")
+
+
+@app.get("/agent", response_class=HTMLResponse)
+def get_agent_dashboard() -> str:
+    dash_file = Path(__file__).parent / "agent_dashboard.html"
+    if not dash_file.exists():
+        raise HTTPException(status_code=404, detail="Agent dashboard not found.")
+    return dash_file.read_text(encoding="utf-8")
+
+
+@app.get("/api/agent/profiles")
+def get_agent_profiles():
+    from .agent_runner import get_available_profiles
+    return get_available_profiles()
+
+
+@app.post("/api/agent/fill")
+async def run_agent_fill(req: AgentFillRequest):
+    from .agent_runner import run_form_agent_sync
+    try:
+        # Offload execution to a worker thread with ProactorEventLoop to avoid Windows SelectorEventLoop restrictions
+        result = await asyncio.to_thread(
+            run_form_agent_sync,
+            target_url=req.url,
+            profile_id=req.profile_id,
+            email=req.email,
+            browser_mode=req.browser_mode,
+            chrome_profile=req.chrome_profile,
+            cdp_url=req.cdp_url,
+            custom_instructions=req.custom_instructions,
+        )
+        return result
+    except Exception as e:
+        logger.exception("Form agent execution failed: %s", e)
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.post("/fill-suggestions", response_model=FillResponse)

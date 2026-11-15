@@ -1,0 +1,3 @@
+@echo off
+echo Launching Chrome with Embassy Form Assistant Extension loaded...
+start "" "C:\Program Files\Google\Chrome\Application\chrome.exe" --load-extension="%~dp0.output\chrome-mv3-dev" "http://127.0.0.1:8000/test-form"
